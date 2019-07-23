@@ -20,6 +20,7 @@ class Builder extends BaseBuilder
         'where'  => [],
         'updateCollection' => [],
         'insertCollection' => [],
+        'join' => [],
     ];
 
     public $allowFiltering = false;
