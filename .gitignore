@@ -1,10 +1,10 @@
 .DS_Store
-vendor/
+phpunit.phar
+/vendor
+composer.phar
+composer.lock
 .idea/
 *.swp
 *.swo
-comopser.phar
-phpunit.phar
-clover.xml
 cassandra.log
 phpdoc-cache-*

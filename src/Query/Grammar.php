@@ -130,7 +130,7 @@ class Grammar extends BaseGrammar
      */
     public function compileUpdateCollections(BaseBuilder $query)
     {
-        $updateCollections = collect($query->bindings['updateCollection']);
+        $updateCollections = collect($query->bindings['updateCollection'] ?? []);
 
         $updateCollectionCql = $updateCollections->map(function ($collection, $key) {
             if ($collection['operation']) {
@@ -181,11 +181,11 @@ class Grammar extends BaseGrammar
             foreach ($value as $item) {
                 list($key, $value, $qoutk, $qoutv) = [$item[0], $item[1], $item['key'] ?? null, $item['value'] ?? null];
 
-                if (! is_bool($qoutk)) {
+                if (!is_bool($qoutk)) {
                     $qoutk = 'string' == strtolower(gettype($key));
                 }
 
-                if (! is_bool($qoutv)) {
+                if (!is_bool($qoutv)) {
                     $qoutv = 'string' == strtolower(gettype($value));
                 }
 
