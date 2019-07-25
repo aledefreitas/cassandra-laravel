@@ -75,7 +75,11 @@ class Builder extends BaseBuilder
     /**
      * @var array
      */
-    public $collectionTypes = ['set', 'list', 'map'];
+    public $collectionTypes = [
+        \Cassandra\Set::class,
+        \Cassandra\Collection::class,
+        \Cassandra\Map::class,
+    ];
 
     /**
      * @param Connection $connection
@@ -222,29 +226,28 @@ class Builder extends BaseBuilder
     /**
      * Used to update the colletions like set, list and map.
      *
-     * @param string $type
      * @param string $column
      * @param string $operation
-     * @param string $value
+     * @param \Cassandra\Value  $value
      *
      * @return string
      */
-    public function updateCollection($type, $column, $operation = null, $value = null)
+    public function updateCollection($column, $operation = null, \Cassandra\Value $value = null)
     {
         //Check if the type is anyone in SET, LIST or MAP. else throw ERROR.
-        if (!in_array(strtolower($type), $this->collectionTypes)) {
+        if (!in_array(get_class($value), $this->collectionTypes)) {
             throw new InvalidArgumentException("Invalid binding type: {$type}, Should be any one of ".implode(', ', $this->collectionTypes));
         }
 
         // Here we will make some assumptions about the operator. If only 2 values are
         // passed to the method, we will assume that the operator is an equals sign
         // and keep going. Otherwise, we'll require the operator to be passed in.
-        if (func_num_args() == 3) {
+        if (func_num_args() == 2) {
             $value = $operation;
             $operation = null;
         }
 
-        $updateCollection = compact('type', 'column', 'value', 'operation');
+        $updateCollection = compact('column', 'value', 'operation');
         $this->updateCollections[] = $updateCollection;
         $this->addCollectionBinding($updateCollection, 'updateCollection');
 
@@ -254,14 +257,14 @@ class Builder extends BaseBuilder
     /**
      * Add a binding to the query.
      *
-     * @param array $value
+     * @param array  $value
      * @param string $type
      *
      * @return $this
      *
      * @throws \InvalidArgumentException
      */
-    public function addCollectionBinding($value, $type = 'updateCollection')
+    public function addCollectionBinding(array $value, $type = 'updateCollection')
     {
         if (!array_key_exists($type, $this->bindings)) {
             throw new InvalidArgumentException("Invalid binding type: {$type}.");

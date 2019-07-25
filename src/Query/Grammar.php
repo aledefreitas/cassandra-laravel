@@ -134,9 +134,9 @@ class Grammar extends BaseGrammar
 
         $updateCollectionCql = $updateCollections->map(function ($collection, $key) {
             if ($collection['operation']) {
-                return $collection['column'].'='.$collection['column'].$collection['operation'].$this->compileCollectionValues($collection['type'], $collection['value']);
+                return $collection['column'].'='.$collection['column'].$collection['operation'].$this->compileCollectionValues($collection['value']);
             } else {
-                return $collection['column'].'='.$this->compileCollectionValues($collection['type'], $collection['value']);
+                return $collection['column'].'='.$this->compileCollectionValues($collection['value']);
             }
         })->implode(', ');
 
@@ -146,61 +146,93 @@ class Grammar extends BaseGrammar
     /**
      * Compiles the values assigned to collections.
      *
-     * @param string $type
+     * @param \Cassandra\Value $type
      * @param string $value
      *
      * @return string
      */
-    public function compileCollectionValues($type, $value)
+    public function compileCollectionValues(\Cassandra\Value $value)
     {
-        if (is_array($value)) {
-            if ('set' == $type) {
-                $collection = '{'.$this->buildCollectionString($type, $value).'}';
-            } elseif ('list' == $type) {
-                $collection = '['.$this->buildCollectionString($type, $value).']';
-            } elseif ('map' == $type) {
-                $collection = '{'.$this->buildCollectionString($type, $value).'}';
-            }
+        switch (get_class($value)) {
+            case \Cassandra\Map::class:
+                return '{' . $this->buildCollectionString($value) . '}';
+                break;
 
-            return $collection;
+            case \Cassandra\Set::class:
+                return '{' . $this->buildCollectionString($value) . '}';
+                break;
+
+            case \Cassandra\Collection::class:
+                return '[' . $this->buildCollectionString($value) . ']';
+                break;
         }
+
+        return '{}';
     }
 
     /**
      * Builds the insert string.
      *
-     * @param string $type
-     * @param string $value
+     * @param \Cassandra\Value  $value
      *
      * @return string
      */
-    public function buildCollectionString($type, $value)
+    public function buildCollectionString(\Cassandra\Value $collection)
     {
         $items = [];
-        if ($type === 'map') {
-            foreach ($value as $item) {
-                list($key, $value, $qoutk, $qoutv) = [$item[0], $item[1], $item['key'] ?? null, $item['value'] ?? null];
+        switch (get_class($collection)) {
+            case \Cassandra\Map::class:
+                $keys = $collection->keys();
+                $values = $collection->values();
 
-                if (!is_bool($qoutk)) {
-                    $qoutk = 'string' == strtolower(gettype($key));
+                foreach ($values as $key => $value) {
+                    $key = $keys[$key];
+
+                    $key = $this->isStringType($key) ? "'{$key}'" : $key;
+                    $value = $this->isStringType($value) ? "'{$value}'" : $value;
+
+                    $items[] = "{$key}:{$value}";
                 }
 
-                if (!is_bool($qoutv)) {
-                    $qoutv = 'string' == strtolower(gettype($value));
-                }
+                break;
 
-                $key = $qoutk ? "'{$key}'" : $key;
-                $value = $qoutv ? "'{$value}'" : $value;
-                $items[] = "{$key}:{$value}";
-            }
-        } elseif ($type === 'set' || $type === 'list') {
-            foreach ($value as $item) {
-                $qoutv = 'string' == strtolower(gettype($item));
-                $items[] = $qoutv ? "'{$item}'" : $item;
-            }
+            case \Cassandra\Set::class:
+            case \Cassandra\Collection::class:
+                $values = $collection->values();
+
+                foreach ($values as $value) {
+                    $value = $this->isStringType($value->type()) ? "'{$value}'" : $value;
+
+                    $items[] = $value;
+                }
+                break;
         }
 
-        return implode(',', $items);
+        return implode(', ', $items);
+    }
+
+    /**
+     * Checks if a value type is string or not
+     *
+     * @param  mixed  $type
+     *
+     * @return bool
+     */
+    private function isStringType($type)
+    {
+        if (is_string($type)) {
+            return true;
+        }
+
+        switch ($type->type()) {
+            case 'varchar':
+            case 'ascii':
+            case 'inet':
+                return true;
+                break;
+        }
+
+        return false;
     }
 
     /**
