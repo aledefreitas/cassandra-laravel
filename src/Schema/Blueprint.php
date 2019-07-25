@@ -50,7 +50,7 @@ class Blueprint extends BaseBluprint
      */
     public function toSql(Connection $connection, BaseGrammar $grammar)
     {
-        $this->addImpliedCommands();
+        $this->addImpliedCommands($grammar);
 
         $statements = [];
         // Each type of command has a corresponding compiler function on the schema
@@ -243,7 +243,7 @@ class Blueprint extends BaseBluprint
      *
      * @return \Illuminate\Support\Fluent
      */
-    public function timestamp($column)
+    public function timestamp($column, $precision = 0)
     {
         return $this->addColumn('timestamp', $column);
     }
