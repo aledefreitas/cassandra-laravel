@@ -228,6 +228,7 @@ class Grammar extends BaseGrammar
             case 'varchar':
             case 'ascii':
             case 'inet':
+            case 'text':
                 return true;
                 break;
         }
