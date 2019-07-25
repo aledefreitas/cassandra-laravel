@@ -4,6 +4,7 @@ namespace ShSo\Lacassa\Query;
 
 use Illuminate\Database\Query\Builder as BaseBuilder;
 use Illuminate\Database\Query\Grammars\Grammar as BaseGrammar;
+use Illuminate\Support\Arr;
 
 class Grammar extends BaseGrammar
 {
@@ -40,18 +41,6 @@ class Grammar extends BaseGrammar
         })->implode(', ');
 
         return "insert into {$table} ({$columns}) values ({$parameters})";
-    }
-
-    /**
-     * @param \Illuminate\Support\Collection $collection
-     *
-     * @return \Illuminate\Support\Collection
-     */
-    public function buildInsertCollectionParam($collection)
-    {
-        return $collection->map(function ($collectionItem) {
-            return $this->compileCollectionValues($collectionItem['type'], $collectionItem['value']);
-        })->implode(', ');
     }
 
     /**
@@ -130,13 +119,13 @@ class Grammar extends BaseGrammar
      */
     public function compileUpdateCollections(BaseBuilder $query)
     {
-        $updateCollections = collect($query->bindings['updateCollection'] ?? []);
+        $updateCollections = collect($query->updateCollections ?? []);
 
         $updateCollectionCql = $updateCollections->map(function ($collection, $key) {
             if ($collection['operation']) {
-                return $collection['column'].'='.$collection['column'].$collection['operation'].$this->compileCollectionValues($collection['value']);
+                return "{$collection['column']} = {$collection['column']}{$collection['operation']}?";
             } else {
-                return $collection['column'].'='.$this->compileCollectionValues($collection['value']);
+                return $collection['column'].' = ?';
             }
         })->implode(', ');
 
@@ -171,44 +160,24 @@ class Grammar extends BaseGrammar
     }
 
     /**
-     * Builds the insert string.
+     * Prepare the bindings for an update statement.
      *
-     * @param \Cassandra\Value  $value
-     *
-     * @return string
+     * @param  array  $bindings
+     * @param  array  $values
+     * @return array
      */
-    public function buildCollectionString(\Cassandra\Value $collection)
+    public function prepareBindingsForUpdate(array $bindings, array $values)
     {
-        $items = [];
-        switch (get_class($collection)) {
-            case \Cassandra\Map::class:
-                $keys = $collection->keys();
-                $values = $collection->values();
+        $cleanBindings = Arr::except($bindings, ['select', 'join', 'updateCollection']);
 
-                foreach ($values as $key => $value) {
-                    $key = $keys[$key];
-
-                    $key = $this->isStringType($key) ? "'{$key}'" : $key;
-                    $value = $this->isStringType($value) ? "'{$value}'" : $value;
-
-                    $items[] = "{$key}:{$value}";
-                }
-
-                break;
-
-            case \Cassandra\Set::class:
-            case \Cassandra\Collection::class:
-                $values = $collection->values();
-
-                foreach ($values as $value) {
-                    $value = $this->isStringType($value->type()) ? "'{$value}'" : $value;
-
-                    $items[] = $value;
-                }
-                break;
-        }
-
-        return implode(', ', $items);
+        return array_values(
+            array_merge(
+                $bindings['join'],
+                $bindings['updateCollection'],
+                $values,
+                Arr::flatten($cleanBindings)
+            )
+        );
     }
 
     /**

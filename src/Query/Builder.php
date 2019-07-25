@@ -19,7 +19,6 @@ class Builder extends BaseBuilder
         'select' => [],
         'where'  => [],
         'updateCollection' => [],
-        'insertCollection' => [],
         'join' => [],
     ];
 
@@ -32,14 +31,14 @@ class Builder extends BaseBuilder
      *
      * @var array
      */
-    public $updateCollections;
+    public $updateCollections = [];
 
     /**
      * The where constraints for the query.
      *
      * @var array
      */
-    public $insertCollections;
+    public $insertCollections = [];
 
     /**
      * All of the available clause operators.
@@ -236,7 +235,9 @@ class Builder extends BaseBuilder
     {
         //Check if the type is anyone in SET, LIST or MAP. else throw ERROR.
         if (!in_array(get_class($value), $this->collectionTypes)) {
-            throw new InvalidArgumentException("Invalid binding type: {$type}, Should be any one of ".implode(', ', $this->collectionTypes));
+            throw new InvalidArgumentException(
+                "Invalid binding type: {$type}, Should be any one of ".implode(', ', $this->collectionTypes)
+            );
         }
 
         // Here we will make some assumptions about the operator. If only 2 values are
@@ -249,9 +250,34 @@ class Builder extends BaseBuilder
 
         $updateCollection = compact('column', 'value', 'operation');
         $this->updateCollections[] = $updateCollection;
+
         $this->addCollectionBinding($updateCollection, 'updateCollection');
 
         return $this;
+    }
+
+    /**
+     * Gets the collection type
+     *
+     * @param  \Cassandra\Value  $collection
+     *
+     * @return string
+     */
+    private function getCollectionType(\Cassandra\Value $collection)
+    {
+        switch (get_class($collection)) {
+            case \Cassandra\Map::class:
+                return 'map';
+                break;
+            case \Cassandra\Collection::class:
+                return 'list';
+                break;
+            case \Cassandra\Set::class:
+                return 'set';
+                break;
+        }
+
+        return '';
     }
 
     /**
@@ -266,10 +292,13 @@ class Builder extends BaseBuilder
      */
     public function addCollectionBinding(array $value, $type = 'updateCollection')
     {
+        $value['type'] = $this->getCollectionType($value['value']);
+
         if (!array_key_exists($type, $this->bindings)) {
             throw new InvalidArgumentException("Invalid binding type: {$type}.");
         }
-        $this->bindings[$type][] = $value;
+
+        $this->bindings[$type][] = $value['value'];
 
         return $this;
     }
@@ -299,7 +328,6 @@ class Builder extends BaseBuilder
      */
     public function insert(array $values = [])
     {
-        $insertCollectionArray = [];
         // Since every insert gets treated like a batch insert, we will make sure the
         // bindings are structured in a way that is convenient when building these
         // inserts statements by verifying these elements are actually an array.
@@ -326,24 +354,6 @@ class Builder extends BaseBuilder
             $this->grammar->compileInsert($this, $values),
             $this->cleanBindings(Arr::flatten($values, 1))
         );
-    }
-
-    /**
-     * Insert a colletion type in cassandra.
-     *
-     * @param string $type
-     * @param string $column
-     * @param string $value
-     *
-     * @return $this
-     */
-    public function insertCollection($type, $column, $value)
-    {
-        $insertCollection = compact('type', 'column', 'value');
-        $this->insertCollections[] = $insertCollection;
-        $this->addCollectionBinding($insertCollection, 'insertCollection');
-
-        return $this;
     }
 
     /**
