@@ -17,6 +17,8 @@ class Blueprint extends BaseBluprint
 
     protected $primary;
 
+    protected $clustering;
+
     /**
      * @return void
      */
