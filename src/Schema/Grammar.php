@@ -81,12 +81,27 @@ class Grammar extends BaseGrammar
      */
     protected function compileCreateTable($blueprint, $command, $connection)
     {
-        return sprintf('%s table %s (%s, %s)',
-           'create',
-           $this->wrapTable($blueprint),
-           implode(', ', $this->getColumns($blueprint)),
-           $this->compilePrimary($blueprint, $command)
-       );
+        return sprintf(
+            '%s table %s (%s, %s) %s',
+            'create',
+            $this->wrapTable($blueprint),
+            implode(', ', $this->getColumns($blueprint)),
+            $this->compilePrimary($blueprint, $command),
+            $this->compileClustering($blueprint, $command)
+        );
+    }
+
+    /**
+     * Compile clustering command.
+     *
+     * @param \Illuminate\Database\Schema\Blueprint $blueprint
+     * @param \Illuminate\Support\Fluent $command
+     *
+     * @return string
+     */
+    public function compileClustering(Blueprint $blueprint, Fluent $command)
+    {
+        return $blueprint->compileClustering();
     }
 
     /**
@@ -167,8 +182,6 @@ class Grammar extends BaseGrammar
     public function compilePrimary(Blueprint $blueprint, Fluent $command)
     {
         return $blueprint->compilePrimary();
-
-        return $this->compileKey($blueprint, $command, 'primary key');
     }
 
     /**

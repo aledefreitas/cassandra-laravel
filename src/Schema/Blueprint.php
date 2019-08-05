@@ -88,7 +88,46 @@ class Blueprint extends BaseBluprint
     }
 
     /**
-     * @return void
+     * Specify the clustering order
+     *
+     * @param  array  $columns
+     *
+     * @return \Illuminate\Support\Fluent
+     */
+    public function clustering(array $columns)
+    {
+        $this->clustering = $command = $this->createCommand('clustering', compact('columns'));
+
+        return $command;
+    }
+
+    /**
+     * @return string
+     */
+    public function compileClustering()
+    {
+        $clustering = $this->clustering;
+
+        if ($clustering) {
+            if ($clustering->name === 'clustering') {
+                $ordering = [];
+
+                foreach ($clustering->columns as $column => $direction) {
+                    $ordering[] = "{$column} {$direction}";
+                }
+
+                return sprintf(
+                    'WITH CLUSTERING ORDER BY (%s)',
+                    implode(', ', $ordering)
+                );
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * @return string
      */
     public function compilePrimary()
     {
@@ -98,6 +137,8 @@ class Blueprint extends BaseBluprint
                 return sprintf('primary key (%s) ', implode(', ', $primaryKey->columns));
             }
         }
+
+        return '';
     }
 
     /**
