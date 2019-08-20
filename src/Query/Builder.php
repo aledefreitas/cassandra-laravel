@@ -396,14 +396,15 @@ class Builder extends BaseBuilder
      *
      * @param  int  $perPage
      * @param  array  $columns
-     * @param  string  $pagination_state_token
+     * @param  string  $page
      *
      * @return \Cassandra\Rows
      */
     public function paginate(
-        int $perPage = 15,
-        ?array $columns = [ '*' ],
-        string $pagination_state_token = null
+        $perPage = 15,
+        $columns = [ '*' ],
+        $pageName = 'page',
+        $page = null
     ) {
         if (is_null($this->columns)) {
             $this->columns = $columns;
@@ -416,8 +417,8 @@ class Builder extends BaseBuilder
             'page_size' => $perPage,
         ];
 
-        if (isset($pagination_state_token)) {
-            $options['paging_state_token'] = $pagination_state_token;
+        if (isset($page)) {
+            $options['paging_state_token'] = $page;
         }
 
         return $this->connection->execute($cql, $options);
