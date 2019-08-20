@@ -322,11 +322,12 @@ class Builder extends BaseBuilder
     /**
      * Insert a new record into the database.
      *
-     * @param array $values
+     * @param  array  $values
+     * @param  bool  $isAsync
      *
-     * @return bool
+     * @return mixed
      */
-    public function insert(array $values = [])
+    public function insert(array $values = [], $isAsync = false)
     {
         // Since every insert gets treated like a batch insert, we will make sure the
         // bindings are structured in a way that is convenient when building these
@@ -347,13 +348,35 @@ class Builder extends BaseBuilder
             }
         }
 
+        $cqlStatement = $this->grammar->compileInsert($this, $values);
+        $bindings = $this->cleanBindings(Arr::flatten($values, 1));
+
         // Finally, we will run this query against the database connection and return
         // the results. We will need to also flatten these bindings before running
         // the query so they are all in one huge, flattened array for execution.
+        if ($isAsync === true) {
+            return $this->connection->insertAsync(
+                $cqlStatement,
+                $bindings
+            );
+        }
+
         return $this->connection->insert(
-            $this->grammar->compileInsert($this, $values),
-            $this->cleanBindings(Arr::flatten($values, 1))
+            $cqlStatement,
+            $bindings
         );
+    }
+
+    /**
+     * Insert a new record into the database asynchronously.
+     *
+     * @param  array  $values
+     *
+     * @return bool
+     */
+    public function insertAsync(array $values = [])
+    {
+        return $this->insert($values, true);
     }
 
     /**

@@ -202,6 +202,34 @@ class Connection extends BaseConnection
         });
     }
 
+    public function statementAsync($query, $bindings = [])
+    {
+        return $this->run($query, $bindings, function ($query, $bindings) {
+            if ($this->pretending()) {
+                return true;
+            }
+
+            $statement = $this->connection->prepare($query);
+            $this->recordsHaveBeenModified();
+
+            return $this->connection->executeAsync($statement, ['arguments' => $bindings]);
+        });
+    }
+
+    /**
+     * Run an insert statement against the database.
+     *
+     * @param  string  $query
+     * @param  array   $bindings
+     *
+     * @return \Cassandra\FutureRows
+     */
+    public function insertAsync($query, $bindings = [])
+    {
+        return $this->statementAsync($query, $bindings);
+    }
+
+
     /**
      * Reconnect to the database if a PDO connection is missing.
      *
