@@ -390,4 +390,36 @@ class Builder extends BaseBuilder
 
         return $this->execute($cql);
     }
+
+    /**
+     * Paginates results
+     *
+     * @param  int  $perPage
+     * @param  array  $columns
+     * @param  string  $pagination_state_token
+     *
+     * @return \Cassandra\Rows
+     */
+    public function paginate(
+        int $perPage = 15,
+        ?array $columns = [ '*' ],
+        string $pagination_state_token = null
+    ) {
+        if (is_null($this->columns)) {
+            $this->columns = $columns;
+        }
+
+        $cql = $this->grammar->compileSelect($this);
+
+        $options = [
+            'arguments' => $this->getBindings(),
+            'page_size' => $perPage,
+        ];
+
+        if (isset($pagination_state_token)) {
+            $options['paging_state_token'] = $pagination_state_token;
+        }
+
+        return $this->connection->execute($cql, $options);
+    }
 }
