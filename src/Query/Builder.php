@@ -41,6 +41,16 @@ class Builder extends BaseBuilder
     public $insertCollections = [];
 
     /**
+     * @var array
+     */
+    protected $options = [];
+
+    /**
+     * @var bool
+     */
+    protected $useCollection = true;
+
+    /**
      * All of the available clause operators.
      *
      * @var array
@@ -104,6 +114,34 @@ class Builder extends BaseBuilder
     }
 
     /**
+     * Sets the options for the query
+     *
+     * @param  array  $options
+     *
+     * @return self
+     */
+    public function withOptions(array $options = [])
+    {
+        $this->options = $options;
+
+        return $this;
+    }
+
+    /**
+     * Toggles the use collection option
+     *
+     * @param  bool  $useCollection
+     *
+     * @return self
+     */
+    public function setUseCollection(bool $useCollection)
+    {
+        $this->useCollection = $useCollection;
+
+        return $this;
+    }
+
+    /**
      * Set the table which the query is targeting.
      *
      * @param string $table
@@ -122,7 +160,7 @@ class Builder extends BaseBuilder
      *
      * @return Cassandra\Rows
      */
-    public function get($columns = ['*'], array $options = [])
+    public function get($columns = ['*'])
     {
         if (is_null($this->columns)) {
             $this->columns = $columns;
@@ -133,13 +171,30 @@ class Builder extends BaseBuilder
     }
 
     /**
+     * Execute the query as a "select" statement and returns cassandra rows.
+     *
+     * @param array $columns
+     *
+     * @return Cassandra\Rows
+     */
+    public function getCassandraRows($columns = ['*'])
+    {
+        if (is_null($this->columns)) {
+            $this->columns = $columns;
+        }
+        $cql = $this->grammar->compileSelect($this);
+
+        return $this->execute($cql);
+    }
+
+    /**
      * Execute the query as a "select" statement.
      *
      * @param array $columns
      *
      * @return Cassandra\FutureRows
      */
-    public function getAsync($columns = ['*'], array $options = [])
+    public function getAsync($columns = ['*'])
     {
         if (is_null($this->columns)) {
             $this->columns = $columns;
@@ -153,26 +208,24 @@ class Builder extends BaseBuilder
      * Execute the CQL query.
      *
      * @param string $cql
-     * @param array $options
      *
      * @return Cassandra\Rows
      */
-    private function execute($cql, array $options = [])
+    private function execute($cql)
     {
-        return $this->connection->execute($cql, array_merge($options, ['arguments' => $this->getBindings()]));
+        return $this->connection->execute($cql, array_merge($this->options, ['arguments' => $this->getBindings()]));
     }
 
     /**
      * Execute the CQL query asyncronously.
      *
      * @param string $cql
-     * @param array $options
      *
      * @return Cassandra\FutureRows
      */
-    private function executeAsync($cql, array $options = [])
+    private function executeAsync($cql)
     {
-        return $this->connection->executeAsync($cql, array_merge($options, ['arguments' => $this->getBindings()]));
+        return $this->connection->executeAsync($cql, array_merge($this->options, ['arguments' => $this->getBindings()]));
     }
 
     /**
