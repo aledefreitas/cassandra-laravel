@@ -122,7 +122,7 @@ class Builder extends BaseBuilder
      *
      * @return Cassandra\Rows
      */
-    public function get($columns = ['*'])
+    public function get($columns = ['*'], array $options = [])
     {
         if (is_null($this->columns)) {
             $this->columns = $columns;
@@ -139,7 +139,7 @@ class Builder extends BaseBuilder
      *
      * @return Cassandra\FutureRows
      */
-    public function getAsync($columns = ['*'])
+    public function getAsync($columns = ['*'], array $options = [])
     {
         if (is_null($this->columns)) {
             $this->columns = $columns;
@@ -153,24 +153,26 @@ class Builder extends BaseBuilder
      * Execute the CQL query.
      *
      * @param string $cql
+     * @param array $options
      *
      * @return Cassandra\Rows
      */
-    private function execute($cql)
+    private function execute($cql, array $options = [])
     {
-        return $this->connection->execute($cql, ['arguments' => $this->getBindings()]);
+        return $this->connection->execute($cql, array_merge($options, ['arguments' => $this->getBindings()]));
     }
 
     /**
      * Execute the CQL query asyncronously.
      *
      * @param string $cql
+     * @param array $options
      *
      * @return Cassandra\FutureRows
      */
-    private function executeAsync($cql)
+    private function executeAsync($cql, array $options = [])
     {
-        return $this->connection->executeAsync($cql, ['arguments' => $this->getBindings()]);
+        return $this->connection->executeAsync($cql, array_merge($options, ['arguments' => $this->getBindings()]));
     }
 
     /**
