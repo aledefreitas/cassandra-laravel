@@ -148,9 +148,9 @@ class Builder extends BaseBuilder
      *
      * @return $this
      */
-    public function from($collection)
+    public function from($collection, $as = null)
     {
-        return parent::from($collection);
+        return parent::from($collection, $as);
     }
 
     /**
