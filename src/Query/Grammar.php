@@ -74,8 +74,9 @@ class Grammar extends BaseGrammar
         }
 
         $wheres = is_array($query->wheres) ? $this->compileWheres($query) : '';
+        $allowFiltering = $query->allowFiltering ? 'ALLOW FILTERING' : '';
 
-        return trim('delete '.$delColumns." from {$this->wrapTable($query->from)} $wheres");
+        return trim("delete {$delColumns} from {$this->wrapTable($query->from)} {$wheres} {$allowFiltering}");
     }
 
     /**
@@ -107,7 +108,9 @@ class Grammar extends BaseGrammar
             $upateCollections = $columns ? ', '.$upateCollections : $upateCollections;
         }
 
-        return trim("update {$table} set $columns $upateCollections $wheres");
+        $allowFiltering = $query->allowFiltering ? 'ALLOW FILTERING' : '';
+
+        return trim("update {$table} set $columns $upateCollections $wheres {$allowFiltering}");
     }
 
     /**
